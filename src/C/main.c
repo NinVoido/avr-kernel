@@ -3,11 +3,23 @@
 
 #include "./os/kernel.h"
 #include "./os/config.h"
+#include "./os/task_context.h"
 
-ISR(kernel_interrupt)
+ISR(kernel_interrupt, ISR_NAKED)
 {
-        /* TODO - turn off the LED here to check if this actually executes */
-        timer_service();
+//        save_buffer();
+//        tick++;
+//        if (tick == 1000) {
+//                PORTB ^= 1<<5;
+//        }
+//
+//        if (tick == 2000) {
+//                PORTB &= ~(1<<5);
+//                tick = 0;
+//        }
+//        load_buffer();
+        task_manager();
+        asm("reti");
 }
 
 void led_off(void);
@@ -15,29 +27,40 @@ void led_on(void);
 
 void led_on(void)
 {
-        set_timer_task(led_off, 300);
-        PORTB ^= 1<<5;
+        while(1) {
+                if (tick == 1000 | tick == 1001) {
+                        PORTB = 1<<5;
+                }
+        }
 }
 
 void led_off(void)
 {
-        set_timer_task(led_on, 300);
-        PORTB &= ~(1<<5);
+        while (1) {
+                if (tick == 2000 | tick == 2001) {
+                        tick = 0;
+                        PORTB &= ~(1 << 5);
+                }
+        }
 }
 
 int main(void)
 {
-        /* TODO - move hardware-specific setup to another file */
+
+        tick = 0;
+
         DDRB |= 1<<5;
 
         init_kernel();
-        run_kernel();
 
-        set_task(led_on);
+        set_task(&led_on, 0);
+        set_task(&led_off, 1);
+
+        run_kernel();
 
         while (1) {
                 wdt_reset();
-                task_manager();
+                asm("nop");
         }
 
         return 0;

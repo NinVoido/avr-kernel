@@ -1,0 +1,5 @@
+.vscode/
+C/.idea
+C/main
+C/main_debug
+C/main.s
